@@ -1,6 +1,7 @@
 # specify the paths to the image and JSON file
-input_path = "pictures/"
+input_path = "google_photos/"
 output_path = "output/"
+reject_path = "reject/"
 
 supportedMediaFileTypes = {
     '.jpeg': { "supportsExif": True },

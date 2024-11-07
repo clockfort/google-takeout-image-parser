@@ -25,8 +25,13 @@ def get_google_datetime(image_path, metadata):
         # Read the metadata from the JSON file
         with open(generated_json_name) as f:
             img_meta = json.load(f)
-
-        datetime_raw = img_meta["photoTakenTime"]["timestamp"] or img_meta["creationTime"]["timestamp"]
+        try:
+            datetime_raw = img_meta["photoTakenTime"]["timestamp"] or img_meta["creationTime"]["timestamp"]
+        except KeyError:
+            try:
+                datetime_raw = img_meta["creationTime"]["timestamp"]
+            except KeyError:
+                return None
         return datetime.fromtimestamp(int(datetime_raw)).strftime("%Y:%m:%d %H:%M:%S")
     return None 
 
@@ -44,12 +49,14 @@ def get_manual_datetime(image_path):
         return datetime.strptime(datetime_raw, "%Y:%m:%d %H:%M:%S").strftime("%Y:%m:%d %H:%M:%S")
     return None
 
+# .387:08:00
 def normalize_exif_date(date_string : str) -> str:
-    date =  datetime.strptime(date_string.replace('-', ':'), "%Y:%m:%d %H:%M:%S")
+    date_string_seconds = re.sub(r'\.\d{3}[\+:]\d{2}:\d{2}$', '', date_string) # strip millis
+    date =  datetime.strptime(date_string_seconds.replace('-', ':'), "%Y:%m:%d %H:%M:%S")
     date_formatted = date.strftime("%m/%d/%Y %H:%M:%S")
     return date_formatted
 
 def update_file_create_time(datetime: str, path: str, dry_run: bool = False):
-    create_time_command = f"SetFile -d '{normalize_exif_date(datetime)}' '{path}'"
+    create_time_command = f"touch -d '{normalize_exif_date(datetime)}' '{path}'"
     if not dry_run:
         call(create_time_command, shell=True)

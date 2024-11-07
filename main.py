@@ -4,14 +4,19 @@ import traceback
 
 from utils.colors import Colors
 from utils.datetime import update_file_create_time, get_google_datetime, get_manual_datetime 
-from utils.filesystem import get_file_extension, copy_media
+from utils.filesystem import get_file_extension, copy_media, delete_media
 from utils.exif import update_file_exif_date_time, get_exif_tag 
 from config import *
 
 def update_media_with_exif(output_path: str, image: str, date_time: str, dry_run: bool = False):
-    copy_media(output_path, image, dry_run)
-    update_file_exif_date_time(date_time, output_path, dry_run, verbose)
-    update_file_create_time(date_time, output_path, dry_run)
+    try:
+        copy_media(output_path, image, dry_run)
+        update_file_exif_date_time(date_time, output_path, dry_run, verbose)
+        update_file_create_time(date_time, output_path, dry_run)
+    except ValueError:
+        print("Error, bad tag in image: ", image)
+        copy_media(reject_path, image, dry_run)
+        delete_media(output_path)
 
 def update_media(output_path: str, image: str, date_time: str, dry_run: bool = False):
     copy_media(output_path, image, dry_run)
@@ -35,6 +40,8 @@ for root, dirs, files in os.walk(input_path):
 
 print('Found ', len(images), ' media files. ')
 print('Found', len(metadata), ' metadata files. ')
+
+print("output_path=", output_path)
 
 # Walk through the images/media files and process them
 for image_path in images:
@@ -88,6 +95,6 @@ for image_path in images:
                     copy_media(os.path.join(output_path, image_path), image_path, dry_run)
     # Global exception handler 
     except:
-        print("Something went wrong for: ", image_path)
+        print("Error, something went wrong, adding to reject dir: ", image_path)
+        copy_media(reject_path, image_path, dry_run)
         traceback.print_exc() 
-        break
